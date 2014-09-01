@@ -22,7 +22,7 @@ CATEGORY_FEED_ATOM = None
 TRANSLATION_FEED_ATOM = None
 
 # Social widget
-SOCIAL = (('Github', 'https://raphaelbrand.github.com'),)
+SOCIAL = (('Github', 'https://github.com/raphaelbrand'),)
 
 DEFAULT_PAGINATION = False
 
