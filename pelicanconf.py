@@ -14,8 +14,6 @@ DEFAULT_LANG = u'en'
 
 THEME = 'pelican-svbhack'
 
-DISQUS_SITENAME = 'raphaelbrand'
-
 # Feed generation is usually not desired when developing
 FEED_ALL_ATOM = None
 CATEGORY_FEED_ATOM = None
