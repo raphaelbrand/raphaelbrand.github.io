@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 
 AUTHOR = u'Raphael Brand'
 SITENAME = u'Raphael Brand | Blog'
-SITEURL = ''
 TAGLINE = 'a blog about software development and machine learning'
 
 PATH = 'content'
