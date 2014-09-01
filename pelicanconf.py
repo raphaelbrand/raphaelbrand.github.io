@@ -5,27 +5,23 @@ from __future__ import unicode_literals
 AUTHOR = u'Raphael Brand'
 SITENAME = u'Raphael Brand | Blog'
 SITEURL = ''
+TAGLINE = 'a blog about software development and machine learning'
 
 PATH = 'content'
 
-TIMEZONE = 'Europe/Paris'
+TIMEZONE = 'Europe/Berlin'
 
 DEFAULT_LANG = u'en'
+
+THEME = 'pelican-svbhack'
 
 # Feed generation is usually not desired when developing
 FEED_ALL_ATOM = None
 CATEGORY_FEED_ATOM = None
 TRANSLATION_FEED_ATOM = None
 
-# Blogroll
-LINKS = (('Pelican', 'http://getpelican.com/'),
-         ('Python.org', 'http://python.org/'),
-         ('Jinja2', 'http://jinja.pocoo.org/'),
-         ('You can modify those links in your config file', '#'),)
-
 # Social widget
-SOCIAL = (('You can add links in your config file', '#'),
-          ('Another social link', '#'),)
+SOCIAL = (('Github', 'https://raphaelbrand.github.com'),)
 
 DEFAULT_PAGINATION = False
 
