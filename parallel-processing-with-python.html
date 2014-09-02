@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- ## for client-side less
+  <link rel="stylesheet/less" type="text/css" href="https://raphaelbrand.github.io/theme/css/style.less">
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/less.js/1.7.3/less.min.js" type="text/javascript"></script>
+  -->
+  <link rel="stylesheet" type="text/css" href="https://raphaelbrand.github.io/theme/css/style.css">
+
+  <link rel="stylesheet" type="text/css" href="https://raphaelbrand.github.io/theme/css/pygments.css">
+  <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=PT+Sans|PT+Serif|PT+Mono">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Raphael Brand">
+  <meta name="description" content="Posts and writings by Raphael Brand">
+
+  <link href="https://raphaelbrand.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Raphael Brand | Blog Full Atom Feed" />
+
+<meta name="keywords" content="python parallel">
+
+  <title>
+Parallel processing with python  </title>
+
+</head>
+
+<body>
+  <aside>
+    <div id="user_meta">
+      <a href="https://raphaelbrand.github.io">
+        <img src="https://raphaelbrand.github.io/theme/images/logo.jpg" alt="logo">
+      </a>
+      <h2><a href="https://raphaelbrand.github.io">Raphael Brand</a></h2>
+      <p>a blog about software development and machine learning</p>
+      <ul>
+        <li><a href="https://github.com/raphaelbrand" target="_blank">Github</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main>
+    <header>
+<p>Posted on Di 02 September 2014</p>
+    </header>
+
+<article>
+  <div class="article_title">
+    <h3><a href="https://raphaelbrand.github.io/parallel-processing-with-python.html">Parallel processing with python</a></h3>
+  </div>
+  <div class="article_text">
+    <p>Since i do a lot of machine learning and nlp related tasks, i often need to preprocess large amounts of data. For web pages, which where obtained by a crawler, these steps might include:</p>
+<ul>
+<li>remove html code and extract the raw text data</li>
+<li><a href="http://nlp.stanford.edu/IR-book/html/htmledition/tokenization-1.html">tokenize</a> the raw text data</li>
+<li>filter unwanted tokens such as punctuation characters</li>
+<li><a href="http://en.wikipedia.org/wiki/Stemming">stem</a> the remaining tokens</li>
+</ul>
+<p>The following is a very simple example. Lets assume we have a text file where every line is a document:</p>
+<div class="highlight"><pre>This is an example text.
+Another text with no meaning!
+What is this? Some more text here.
+</pre></div>
+
+
+<p>The goal is to extract every word and write those tokens separated by whitespace to a new file.</p>
+<div class="highlight"><pre><span class="kn">import</span> <span class="nn">re</span>
+
+<span class="n">tokenized_lines</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;input.txt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">tokenized_lines</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">token</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;\W+&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+                                <span class="k">if</span> <span class="n">token</span><span class="o">.</span><span class="n">isalpha</span><span class="p">()</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">token</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">])</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;output.txt&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">tokenized_lines</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
+</pre></div>
+
+
+<p>It would obviously better not to accumulate all tokens in memory, but to write them to a file as soon as they are extracted. But for simplicity i will keep it this way. With enough data this step will take a long time. To reduce the execution time i tried to run the tasks in parallel, since every modern laptop has multiple cores and the tokenization task is cpu bound. </p>
+<h4>Requirements</h4>
+<p>Before i started to search for a solution i thought about the requirements it should have.</p>
+<h5>Overhead</h5>
+<p>I did not want to use one of the many existing <a href="https://wiki.python.org/moin/ParallelProcessing">solutions</a>. I rather searched for a solution based on the standard library with minimal overhead. I also did not need support for clustering, since i was restricted to one machine.</p>
+<h5>Multiprocessing</h5>
+<p>If you don't know about the GIL, you should read this <a href="http://www.jeffknupp.com/blog/2012/03/31/pythons-hardest-problem/">blog post</a>. Since there can be only one thread active at the time in python programs, the threading library is useless for cpu bound tasks. Instead one should use the <a href="https://docs.python.org/2/library/multiprocessing.html">multiprocessing module</a>.</p>
+<h5>Streams</h5>
+<p>The data size was always too large to fit into memory. Because of that, i always used data streams, mostly contents of text files. The new solution should not only be able to support streams, but should also give the user the opportunity to regulate how much memory is used.</p>
+<h4>Solution</h4>
+<p>Based on my requirements i wrote a simple solution which is hosted on <a href="https://github.com/raphaelbrand/PyProcessParallel">github</a>. The architecture of the solution is best described in the following picture.</p>
+<p><img alt="task chain Text" src="https://raphaelbrand.github.io/images/PyProcessParallel.png" /></p>
+<p>The producer reads from a source and puts work into the work queue. It is possible to specify a size for each queue. If a queue is already at maximum capacity an attempt to put more items into will block the caller. This allows me to control the amount of memory which will be used. Every worker runs in its own process and takes work out of the work queue. After a worker has finished its task, it puts the result into the result queue. The consumer will then collect the results and write them to specified destination.</p>
+<p>Lets transform our example from the beginning to use the new script. I'll assume you already downloaded the script from github and included it in your project:</p>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">process_parallel</span> <span class="kn">import</span> <span class="n">process_parallel</span>
+
+<span class="c"># you could use the file object as the producer,</span>
+<span class="c"># no need to write a generator.</span>
+<span class="c"># But for demonstration purposes i&#39;ll write a function</span>
+<span class="c"># to show you how to include other sources</span>
+<span class="nb">input</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;input.txt&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">producer</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">input</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">line</span>
+
+<span class="k">def</span> <span class="nf">worker</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">token</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;\W&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">token</span><span class="o">.</span><span class="n">isalpha</span><span class="p">()</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">token</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">]</span>
+
+<span class="n">out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;output.txt&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">consumer</span><span class="p">(</span><span class="n">tokens</span><span class="p">):</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
+
+<span class="c"># the producer should support __iter__</span>
+<span class="c"># worker and consumer need to be functions </span>
+<span class="n">process_parallel</span><span class="p">(</span><span class="n">producer</span><span class="p">(),</span> <span class="n">worker</span><span class="p">,</span> <span class="n">consumer</span>
+                 <span class="n">maxsize_jobs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">maxsize_results</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+
+<span class="c">#clean up</span>
+<span class="nb">input</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+
+<p>The solution is simple enough, only 50 lines of python code. The queues allow us to control the memory being used. On the downside there is a overhead due to the use of the processes. The data needs to be serialized and deserialized between processes. This means, if you're worker logic is too simple, then your code will run slower in parallel.</p>
+  </div>
+  <div class="article_meta">
+    <p>Category: <a href="https://raphaelbrand.github.io/category/software-development.html">software development</a>
+ &ndash; Tags:
+      <a href="https://raphaelbrand.github.io/tag/python-parallel.html">python parallel</a>    </p>
+  </div>
+
+  <div id="article_comments">
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        var disqus_identifier = "parallel-processing-with-python.html";
+        (function() {
+             var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+             dsq.src = 'https://raphaelbrand.disqus.com/embed.js';
+             (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+         })();
+    </script>
+  </div>
+
+</article>
+
+    <footer>
+<p><a href="https://raphaelbrand.github.io/" class="button_accent">&larr; Back to Index</a></p>
+    </footer>
+
+    <div id="ending_message">
+      <p>&copy; Raphael Brand. Built using <a href="http://getpelican.com" target="_blank">Pelican</a>. Theme by Giulio Fidente on <a href="https://github.com/giulivo/pelican-svbhack" target="_blank">github</a>. .</p>
+    </div>
+  </main>
+</body>
+</html>
