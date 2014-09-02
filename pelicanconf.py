@@ -7,6 +7,7 @@ SITENAME = u'Raphael Brand | Blog'
 TAGLINE = 'a blog about software development and machine learning'
 
 PATH = 'content'
+STATIC_PATHS = ['images']
 
 TIMEZONE = 'Europe/Berlin'
 
