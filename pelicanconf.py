@@ -14,6 +14,7 @@ TIMEZONE = 'Europe/Berlin'
 DEFAULT_LANG = u'en'
 
 THEME = 'pelican-svbhack'
+USER_LOGO_URL = '/images/logo.jpg'
 
 # Feed generation is usually not desired when developing
 FEED_ALL_ATOM = None
