@@ -1,5 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Raphael Brand | Blog</title><link href="https://raphaelbrand.github.io/" rel="alternate"></link><link href="https://raphaelbrand.github.io/feeds/raphael-brand.atom.xml" rel="self"></link><id>https://raphaelbrand.github.io/</id><updated>2014-09-02T16:00:00+02:00</updated><entry><title>Parallel processing with python</title><link href="https://raphaelbrand.github.io/parallel-processing-with-python.html" rel="alternate"></link><updated>2014-09-02T16:00:00+02:00</updated><author><name>Raphael Brand</name></author><id>tag:raphaelbrand.github.io,2014-09-02:parallel-processing-with-python.html</id><summary type="html">&lt;p&gt;Since i do a lot of machine learning and nlp related tasks, i often need to preprocess large amounts of data. For web pages, which where obtained by a crawler, these steps might include:&lt;/p&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Raphael Brand | Blog</title><link href="https://raphaelbrand.github.io/" rel="alternate"></link><link href="https://raphaelbrand.github.io/feeds/raphael-brand.atom.xml" rel="self"></link><id>https://raphaelbrand.github.io/</id><updated>2016-10-23T00:00:00+02:00</updated><entry><title>Run hadoop streaming jobs with pypy on EMR</title><link href="https://raphaelbrand.github.io/run-hadoop-streaming-jobs-with-pypy-on-emr.html" rel="alternate"></link><published>2016-10-23T00:00:00+02:00</published><updated>2016-10-23T00:00:00+02:00</updated><author><name>Raphael Brand</name></author><id>tag:raphaelbrand.github.io,2016-10-23:run-hadoop-streaming-jobs-with-pypy-on-emr.html</id><summary type="html">&lt;p&gt;While python is very nice language, it tends to be a lot slower for CPU bound tasks than compiled languages or languages with a &lt;a href="https://en.wikipedia.org/wiki/Just-in-time_compilation"&gt;JIT&lt;/a&gt; compiler &lt;a href="http://benchmarksgame.alioth.debian.org/"&gt;[1]&lt;/a&gt;. While most people just use the standard CPython implementation, there are also alternatives out there. One of them being &lt;a href="http://pypy.org"&gt;pypy&lt;/a&gt;, which has a JIT compiler. The great thing about this is, that for some cases you get some big speedups without changing any thing in your code! Let's try it out with a simple example. We are going to load a file with 5 million lines where each line is a json object. The code looks like this:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;fileinput&lt;/span&gt;
+&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;json&lt;/span&gt;
+
+&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;__name__&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;__main__&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+    &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;line&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;fileinput&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;input&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
+        &lt;span class="n"&gt;json&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;loads&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;line&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;And the results are:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;CPython: 50s&lt;/li&gt;
+&lt;li&gt;pypy: 9s&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Yes you could also use a library like &lt;a href="https://pypi.python.org/pypi/ujson"&gt;ujson&lt;/a&gt; to speed up json parsing, but this example is only to demonstrate how your code can run faster without having to change anything. But be aware that not all libraries are compatible with pypy. For more information read &lt;a href="http://pypy.org/compat.html"&gt;here&lt;/a&gt;. Also pypy usually uses more memory than CPython.&lt;/p&gt;
+&lt;h2&gt;Installing pypy on EMR&lt;/h2&gt;
+&lt;p&gt;The easiest way to get pypy running on the EMR AMIs is to use the binaries by &lt;a href="https://github.com/squeaky-pl/portable-pypy"&gt;squeaky-pl&lt;/a&gt;. Since all your machines in the cluster have to pull this binary, it is best to put it in a s3 bucket first. Also put this &lt;a href="https://bootstrap.pypa.io/get-pip.py"&gt;file&lt;/a&gt; in the bucket. Then add this to your bootstrap:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;aws s3 cp s3://YOUR-BUCKET/pypy-5.4.1-linux_x86_64-portable.tar.bz2 .
+mv pypy-5.4.1-linux_x86_64-portable.tar.bz2 /home/hadoop/
+&lt;span class="nb"&gt;cd&lt;/span&gt; /home/hadoop/
+tar -xjf pypy-5.4.1-linux_x86_64-portable.tar.bz2
+sudo ln -sf /home/hadoop/pypy-5.4.1-linux_x86_64-portable.tar.bz2/bin/pypy /usr/bin/pypy
+aws s3 cp s3://YOUR-BUCKET/get-pip.py .
+pypy get-pip.py
+sudo ln -sf /home/hadoop/pypy-5.4.1-linux_x86_64-portable.tar.bz2/bin/pypy /usr/bin/pip /usr/bin/pypy-pip
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;If you need to install more libraries use &lt;strong&gt;pypy-pip&lt;/strong&gt; instead of the normal &lt;strong&gt;pip&lt;/strong&gt;. This bootstrap also makes sure that the preinstalled python environment is left untouched as it can lead to problems if you do overwrite it.&lt;/p&gt;
+&lt;h2&gt;Running hadoop jobs with pypy&lt;/h2&gt;
+&lt;p&gt;If you bootstrapped your cluster correctly you should now be able to run hadoop streaming jobs with pypy. Refer to this &lt;a href="http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/CLI_CreateStreaming.html"&gt;link&lt;/a&gt; on how to run a streaming step on emr. Obviously choose pypy instead of python2.7 for mapper and reducer excutable.&lt;/p&gt;
+&lt;h2&gt;Run hadoop jobs with mrjob and pypy&lt;/h2&gt;
+&lt;p&gt;Since i run most of my jobs with &lt;a href="http://pythonhosted.org/mrjob/"&gt;mrjob&lt;/a&gt; i needed to figure out on how to change the python binary. You can do so by specifing the &lt;a href="https://pythonhosted.org/mrjob/guides/configs-all-runners.html#option-python_bin"&gt;python_bin&lt;/a&gt; configuration.&lt;/p&gt;</summary><category term="hadoop emr streaming python"></category></entry><entry><title>Parallel processing with python</title><link href="https://raphaelbrand.github.io/parallel-processing-with-python.html" rel="alternate"></link><published>2014-09-02T16:00:00+02:00</published><updated>2014-09-02T16:00:00+02:00</updated><author><name>Raphael Brand</name></author><id>tag:raphaelbrand.github.io,2014-09-02:parallel-processing-with-python.html</id><summary type="html">&lt;p&gt;Since i do a lot of machine learning and nlp related tasks, i often need to preprocess large amounts of data. For web pages, which where obtained by a crawler, these steps might include:&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;remove html code and extract the raw text data&lt;/li&gt;
 &lt;li&gt;&lt;a href="http://nlp.stanford.edu/IR-book/html/htmledition/tokenization-1.html"&gt;tokenize&lt;/a&gt; the raw text data&lt;/li&gt;
@@ -7,24 +40,24 @@
 &lt;li&gt;&lt;a href="http://en.wikipedia.org/wiki/Stemming"&gt;stem&lt;/a&gt; the remaining tokens&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;The following is a very simple example. Lets assume we have a text file where every line is a document:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;This is an example text.
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;This is an example text.
 Another text with no meaning!
 What is this? Some more text here.
 &lt;/pre&gt;&lt;/div&gt;
 
 
 &lt;p&gt;The goal is to extract every word and write those tokens separated by whitespace to a new file.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;re&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;re&lt;/span&gt;
 
 &lt;span class="n"&gt;tokenized_lines&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[]&lt;/span&gt;
-&lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;input.txt&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+&lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;input.txt&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
     &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;line&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
-        &lt;span class="n"&gt;tokenized_lines&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;append&lt;/span&gt;&lt;span class="p"&gt;([&lt;/span&gt;&lt;span class="n"&gt;token&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;token&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;re&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;split&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;\W+&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;line&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;tokenized_lines&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;append&lt;/span&gt;&lt;span class="p"&gt;([&lt;/span&gt;&lt;span class="n"&gt;token&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;token&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;re&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;split&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;\W+&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;line&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
                                 &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;token&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;isalpha&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="ow"&gt;and&lt;/span&gt; &lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;token&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
 
-&lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;output.txt&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;w&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+&lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;output.txt&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;w&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
     &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;line&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;tokenized_lines&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
-        &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;write&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;&lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="s"&gt;&amp;#39; &amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;line&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+        &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;write&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39; &amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;line&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
 &lt;/pre&gt;&lt;/div&gt;
 
 
@@ -42,54 +75,54 @@ What is this? Some more text here.
 &lt;p&gt;&lt;img alt="task chain Text" src="https://raphaelbrand.github.io/images/PyProcessParallel.png" /&gt;&lt;/p&gt;
 &lt;p&gt;The producer reads from a source and puts work into the work queue. It is possible to specify a size for each queue. If a queue is already at maximum capacity an attempt to put more items into will block the caller. This allows me to control the amount of memory which will be used. Every worker runs in its own process and takes work out of the work queue. After a worker has finished its task, it puts the result into the result queue. The consumer will then collect the results and write them to specified destination.&lt;/p&gt;
 &lt;p&gt;Lets transform our example from the beginning to use the new script. I'll assume you already downloaded the script from github and included it in your project:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;process_parallel&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;process_parallel&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;process_parallel&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;process_parallel&lt;/span&gt;
 
-&lt;span class="c"&gt;# you could use the file object as the producer,&lt;/span&gt;
-&lt;span class="c"&gt;# no need to write a generator.&lt;/span&gt;
-&lt;span class="c"&gt;# But for demonstration purposes i&amp;#39;ll write a function&lt;/span&gt;
-&lt;span class="c"&gt;# to show you how to include other sources&lt;/span&gt;
-&lt;span class="nb"&gt;input&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;input.txt&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="c1"&gt;# you could use the file object as the producer,&lt;/span&gt;
+&lt;span class="c1"&gt;# no need to write a generator.&lt;/span&gt;
+&lt;span class="c1"&gt;# But for demonstration purposes i&amp;#39;ll write a function&lt;/span&gt;
+&lt;span class="c1"&gt;# to show you how to include other sources&lt;/span&gt;
+&lt;span class="nb"&gt;input&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;input.txt&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
 &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;producer&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
     &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;line&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="nb"&gt;input&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
         &lt;span class="k"&gt;yield&lt;/span&gt; &lt;span class="n"&gt;line&lt;/span&gt;
 
 &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;worker&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;line&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;token&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;token&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;re&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;split&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;\W&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;line&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;token&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;token&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;re&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;split&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;\W&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;line&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
             &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;token&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;isalpha&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="ow"&gt;and&lt;/span&gt; &lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;token&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
 
-&lt;span class="n"&gt;out&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;output.txt&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;w&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;out&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;output.txt&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;w&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
 &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;consumer&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tokens&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-    &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;write&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;&lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="s"&gt;&amp;#39; &amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tokens&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+    &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;write&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39; &amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tokens&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
 
-&lt;span class="c"&gt;# the producer should support __iter__&lt;/span&gt;
-&lt;span class="c"&gt;# worker and consumer need to be functions &lt;/span&gt;
+&lt;span class="c1"&gt;# the producer should support __iter__&lt;/span&gt;
+&lt;span class="c1"&gt;# worker and consumer need to be functions &lt;/span&gt;
 &lt;span class="n"&gt;process_parallel&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;producer&lt;/span&gt;&lt;span class="p"&gt;(),&lt;/span&gt; &lt;span class="n"&gt;worker&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;consumer&lt;/span&gt;
                  &lt;span class="n"&gt;maxsize_jobs&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;100&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;maxsize_results&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;200&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
 
-&lt;span class="c"&gt;#clean up&lt;/span&gt;
+&lt;span class="c1"&gt;#clean up&lt;/span&gt;
 &lt;span class="nb"&gt;input&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;close&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
 &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;close&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
 &lt;/pre&gt;&lt;/div&gt;
 
 
-&lt;p&gt;The solution is simple enough, only 50 lines of python code. The queues allow us to control the memory being used. On the downside there is a overhead due to the use of the processes. The data needs to be serialized and deserialized between processes. This means, if you're worker logic is too simple, then your code will run slower in parallel.&lt;/p&gt;</summary><category term="python parallel"></category></entry><entry><title>How to host your blog on github with pelican.</title><link href="https://raphaelbrand.github.io/how-to-host-your-blog-on-github-with-pelican.html" rel="alternate"></link><updated>2014-09-01T12:00:00+02:00</updated><author><name>Raphael Brand</name></author><id>tag:raphaelbrand.github.io,2014-09-01:how-to-host-your-blog-on-github-with-pelican.html</id><summary type="html">&lt;p&gt;&lt;a href="https://getpelican.com"&gt;Pelican&lt;/a&gt; is a static site generator written in python. You write your content in a markup language of your choice, in my case &lt;a href="http://en.wikipedia.org/wiki/Markdown"&gt;markdown&lt;/a&gt;, and the generator will transform it into static html sites. The html can then be uploaded to a hoster of your choosing. &lt;a href="https://github.com"&gt;Github&lt;/a&gt; offers the possibility to host user and projects pages. You can read about the difference &lt;a href="https://help.github.com/articles/user-organization-and-project-pages"&gt;here&lt;/a&gt;. In this tutorial i will assume that you host your blog as a user page.&lt;/p&gt;
+&lt;p&gt;The solution is simple enough, only 50 lines of python code. The queues allow us to control the memory being used. On the downside there is a overhead due to the use of the processes. The data needs to be serialized and deserialized between processes. This means, if you're worker logic is too simple, then your code will run slower in parallel.&lt;/p&gt;</summary><category term="python parallel"></category></entry><entry><title>How to host your blog on github with pelican.</title><link href="https://raphaelbrand.github.io/how-to-host-your-blog-on-github-with-pelican.html" rel="alternate"></link><published>2014-09-01T12:00:00+02:00</published><updated>2014-09-01T12:00:00+02:00</updated><author><name>Raphael Brand</name></author><id>tag:raphaelbrand.github.io,2014-09-01:how-to-host-your-blog-on-github-with-pelican.html</id><summary type="html">&lt;p&gt;&lt;a href="https://getpelican.com"&gt;Pelican&lt;/a&gt; is a static site generator written in python. You write your content in a markup language of your choice, in my case &lt;a href="http://en.wikipedia.org/wiki/Markdown"&gt;markdown&lt;/a&gt;, and the generator will transform it into static html sites. The html can then be uploaded to a hoster of your choosing. &lt;a href="https://github.com"&gt;Github&lt;/a&gt; offers the possibility to host user and projects pages. You can read about the difference &lt;a href="https://help.github.com/articles/user-organization-and-project-pages"&gt;here&lt;/a&gt;. In this tutorial i will assume that you host your blog as a user page.&lt;/p&gt;
 &lt;p&gt;First of all  you will need to create a github repository with the following naming scheme: &lt;em&gt;username.github.io&lt;/em&gt; (replace &lt;em&gt;username&lt;/em&gt; with your github username). Then you can clone your repository with:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;git clone git@github.com:username/username.github.io.git
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;git clone git@github.com:username/username.github.io.git
 &lt;/pre&gt;&lt;/div&gt;
 
 
 &lt;p&gt;Next up we will generate a new virtual environment and install pelican. I will use a new branch for this, since i want to keep the source and actual blog separate. If you are not familiar with virtualenv or why you should use is it, you should read &lt;a href="http://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/"&gt;this&lt;/a&gt;.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="nb"&gt;cd &lt;/span&gt;username.github.io
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nb"&gt;cd&lt;/span&gt; username.github.io
 git branch &lt;span class="nb"&gt;source&lt;/span&gt;
 git checkout &lt;span class="nb"&gt;source&lt;/span&gt;
 virtualenv env
-&lt;span class="nb"&gt;source &lt;/span&gt;env/bin/activate
+&lt;span class="nb"&gt;source&lt;/span&gt; env/bin/activate
 pip install pelican markdown ghp-import
 &lt;/pre&gt;&lt;/div&gt;
 
 
 &lt;p&gt;Pelican comes with a script to bootstrap your blog. Run &lt;em&gt;pelican-quickstart&lt;/em&gt; and fill out the details. Make sure to generate a makefile, as it will be used later on. After you ran the command you can view and change your settings in pelicanconf.py. You can view my settings if you checkout the branch source of my blog repository. I also added the following to my .gitignore:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;env
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;env
 output
 *.pid
 cache
@@ -97,7 +130,7 @@ cache
 
 
 &lt;p&gt;Now you can write your first post! Create a new file in the content folder and start typing:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;vim content/fist-post.md
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;vim content/fist-post.md
 Title: My first post!
 Category: foo
 Tags: foo bar
@@ -107,13 +140,13 @@ This is my first post
 
 
 &lt;p&gt;Run &lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;make html
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;make html
 make serve
 &lt;/pre&gt;&lt;/div&gt;
 
 
 &lt;p&gt;and point your browser to &lt;a href="http://localhost:8000"&gt;localhost:8000&lt;/a&gt;. If everything looks good we can now deploy the blog to github. First push the source branch:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;git checkout &lt;span class="nb"&gt;source&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;git checkout &lt;span class="nb"&gt;source&lt;/span&gt;
 git add .
 git commit -m &lt;span class="s2"&gt;&amp;quot;first post&amp;quot;&lt;/span&gt;
 git push origin &lt;span class="nb"&gt;source&lt;/span&gt;
@@ -121,13 +154,13 @@ git push origin &lt;span class="nb"&gt;source&lt;/span&gt;
 
 
 &lt;p&gt;Then deploy to github with&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;make github
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;make github
 &lt;/pre&gt;&lt;/div&gt;
 
 
 &lt;h4&gt;Themes&lt;/h4&gt;
 &lt;p&gt;Since i did not like the default theme, i chose another one. You can view a list of themes in the pelican-themes &lt;a href="https://github.com/getpelican/pelican-themes"&gt;repository&lt;/a&gt;. To install a theme just copy the theme folder to a location of your choice and edit the pelicanconfy.py&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="nv"&gt;THEME&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;path/to/your/theme&amp;#39;&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nv"&gt;THEME&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;path/to/your/theme&amp;#39;&lt;/span&gt;
 &lt;/pre&gt;&lt;/div&gt;
 
 

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- ## for client-side less
+  <link rel="stylesheet/less" type="text/css" href="https://raphaelbrand.github.io/theme/css/style.less">
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/less.js/1.7.3/less.min.js" type="text/javascript"></script>
+  -->
+  <link rel="stylesheet" type="text/css" href="https://raphaelbrand.github.io/theme/css/style.css">
+  <link rel="stylesheet" type="text/css" href="https://raphaelbrand.github.io/theme/css/pygments.css">
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=PT+Sans|PT+Serif|PT+Mono">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Raphael Brand">
+  <meta name="description" content="Posts and writings by Raphael Brand">
+
+  <link href="https://raphaelbrand.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Raphael Brand | Blog Atom" />
+
+<meta name="keywords" content="hadoop emr streaming python">
+
+  <title>
+    Raphael Brand | Blog
+&ndash; Run hadoop streaming jobs with pypy on EMR  </title>
+
+</head>
+
+<body>
+  <aside>
+    <div id="user_meta">
+      <a href="https://raphaelbrand.github.io">
+        <img src="/images/logo.jpg" alt="logo">
+      </a>
+      <h2><a href="https://raphaelbrand.github.io">Raphael Brand</a></h2>
+      <p>a blog about software development and machine learning</p>
+      <ul>
+        <li><a href="https://github.com/raphaelbrand" target="_blank">Github</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main>
+    <header>
+      <p>
+      <a href="https://raphaelbrand.github.io">Index</a> &brvbar; <a href="https://raphaelbrand.github.io/archives.html">Archives</a>
+      &brvbar; <a href="https://raphaelbrand.github.io/feeds/all.atom.xml">Atom</a>
+      </p>
+    </header>
+
+<article>
+  <div class="article_title">
+    <h1><a href="https://raphaelbrand.github.io/run-hadoop-streaming-jobs-with-pypy-on-emr.html">Run hadoop streaming jobs with pypy on EMR</a></h1>
+  </div>
+  <div class="article_text">
+    <p>While python is very nice language, it tends to be a lot slower for CPU bound tasks than compiled languages or languages with a <a href="https://en.wikipedia.org/wiki/Just-in-time_compilation">JIT</a> compiler <a href="http://benchmarksgame.alioth.debian.org/">[1]</a>. While most people just use the standard CPython implementation, there are also alternatives out there. One of them being <a href="http://pypy.org">pypy</a>, which has a JIT compiler. The great thing about this is, that for some cases you get some big speedups without changing any thing in your code! Let's try it out with a simple example. We are going to load a file with 5 million lines where each line is a json object. The code looks like this:</p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">fileinput</span>
+<span class="kn">import</span> <span class="nn">json</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fileinput</span><span class="o">.</span><span class="n">input</span><span class="p">():</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+</pre></div>
+
+
+<p>And the results are:</p>
+<ul>
+<li>CPython: 50s</li>
+<li>pypy: 9s</li>
+</ul>
+<p>Yes you could also use a library like <a href="https://pypi.python.org/pypi/ujson">ujson</a> to speed up json parsing, but this example is only to demonstrate how your code can run faster without having to change anything. But be aware that not all libraries are compatible with pypy. For more information read <a href="http://pypy.org/compat.html">here</a>. Also pypy usually uses more memory than CPython.</p>
+<h2>Installing pypy on EMR</h2>
+<p>The easiest way to get pypy running on the EMR AMIs is to use the binaries by <a href="https://github.com/squeaky-pl/portable-pypy">squeaky-pl</a>. Since all your machines in the cluster have to pull this binary, it is best to put it in a s3 bucket first. Also put this <a href="https://bootstrap.pypa.io/get-pip.py">file</a> in the bucket. Then add this to your bootstrap:</p>
+<div class="highlight"><pre><span></span>aws s3 cp s3://YOUR-BUCKET/pypy-5.4.1-linux_x86_64-portable.tar.bz2 .
+mv pypy-5.4.1-linux_x86_64-portable.tar.bz2 /home/hadoop/
+<span class="nb">cd</span> /home/hadoop/
+tar -xjf pypy-5.4.1-linux_x86_64-portable.tar.bz2
+sudo ln -sf /home/hadoop/pypy-5.4.1-linux_x86_64-portable.tar.bz2/bin/pypy /usr/bin/pypy
+aws s3 cp s3://YOUR-BUCKET/get-pip.py .
+pypy get-pip.py
+sudo ln -sf /home/hadoop/pypy-5.4.1-linux_x86_64-portable.tar.bz2/bin/pypy /usr/bin/pip /usr/bin/pypy-pip
+</pre></div>
+
+
+<p>If you need to install more libraries use <strong>pypy-pip</strong> instead of the normal <strong>pip</strong>. This bootstrap also makes sure that the preinstalled python environment is left untouched as it can lead to problems if you do overwrite it.</p>
+<h2>Running hadoop jobs with pypy</h2>
+<p>If you bootstrapped your cluster correctly you should now be able to run hadoop streaming jobs with pypy. Refer to this <a href="http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/CLI_CreateStreaming.html">link</a> on how to run a streaming step on emr. Obviously choose pypy instead of python2.7 for mapper and reducer excutable.</p>
+<h2>Run hadoop jobs with mrjob and pypy</h2>
+<p>Since i run most of my jobs with <a href="http://pythonhosted.org/mrjob/">mrjob</a> i needed to figure out on how to change the python binary. You can do so by specifing the <a href="https://pythonhosted.org/mrjob/guides/configs-all-runners.html#option-python_bin">python_bin</a> configuration.</p>
+  </div>
+  <div class="article_meta">
+    <p>Posted on: So 23 Oktober 2016</p>
+    <p>Category: <a href="https://raphaelbrand.github.io/category/big-data.html">big data</a>
+ &ndash; Tags:
+      <a href="https://raphaelbrand.github.io/tag/hadoop-emr-streaming-python.html">hadoop emr streaming python</a>    </p>
+  </div>
+
+  <div id="article_comments">
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        var disqus_identifier = "run-hadoop-streaming-jobs-with-pypy-on-emr.html";
+        (function() {
+             var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+             dsq.src = '//raphaelbrand.disqus.com/embed.js';
+             (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+         })();
+    </script>
+  </div>
+
+</article>
+
+
+    <div id="ending_message">
+      <p>&copy; Raphael Brand. Built using <a href="http://getpelican.com" target="_blank">Pelican</a>. Theme by Giulio Fidente on <a href="https://github.com/gfidente/pelican-svbhack" target="_blank">github</a>. </p>
+    </div>
+  </main>
+</body>
+</html>

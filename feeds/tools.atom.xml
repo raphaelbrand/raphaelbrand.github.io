@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Raphael Brand | Blog</title><link href="https://raphaelbrand.github.io/" rel="alternate"></link><link href="https://raphaelbrand.github.io/feeds/tools.atom.xml" rel="self"></link><id>https://raphaelbrand.github.io/</id><updated>2014-09-01T12:00:00+02:00</updated><entry><title>How to host your blog on github with pelican.</title><link href="https://raphaelbrand.github.io/how-to-host-your-blog-on-github-with-pelican.html" rel="alternate"></link><updated>2014-09-01T12:00:00+02:00</updated><author><name>Raphael Brand</name></author><id>tag:raphaelbrand.github.io,2014-09-01:how-to-host-your-blog-on-github-with-pelican.html</id><summary type="html">&lt;p&gt;&lt;a href="https://getpelican.com"&gt;Pelican&lt;/a&gt; is a static site generator written in python. You write your content in a markup language of your choice, in my case &lt;a href="http://en.wikipedia.org/wiki/Markdown"&gt;markdown&lt;/a&gt;, and the generator will transform it into static html sites. The html can then be uploaded to a hoster of your choosing. &lt;a href="https://github.com"&gt;Github&lt;/a&gt; offers the possibility to host user and projects pages. You can read about the difference &lt;a href="https://help.github.com/articles/user-organization-and-project-pages"&gt;here&lt;/a&gt;. In this tutorial i will assume that you host your blog as a user page.&lt;/p&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Raphael Brand | Blog</title><link href="https://raphaelbrand.github.io/" rel="alternate"></link><link href="https://raphaelbrand.github.io/feeds/tools.atom.xml" rel="self"></link><id>https://raphaelbrand.github.io/</id><updated>2014-09-01T12:00:00+02:00</updated><entry><title>How to host your blog on github with pelican.</title><link href="https://raphaelbrand.github.io/how-to-host-your-blog-on-github-with-pelican.html" rel="alternate"></link><published>2014-09-01T12:00:00+02:00</published><updated>2014-09-01T12:00:00+02:00</updated><author><name>Raphael Brand</name></author><id>tag:raphaelbrand.github.io,2014-09-01:how-to-host-your-blog-on-github-with-pelican.html</id><summary type="html">&lt;p&gt;&lt;a href="https://getpelican.com"&gt;Pelican&lt;/a&gt; is a static site generator written in python. You write your content in a markup language of your choice, in my case &lt;a href="http://en.wikipedia.org/wiki/Markdown"&gt;markdown&lt;/a&gt;, and the generator will transform it into static html sites. The html can then be uploaded to a hoster of your choosing. &lt;a href="https://github.com"&gt;Github&lt;/a&gt; offers the possibility to host user and projects pages. You can read about the difference &lt;a href="https://help.github.com/articles/user-organization-and-project-pages"&gt;here&lt;/a&gt;. In this tutorial i will assume that you host your blog as a user page.&lt;/p&gt;
 &lt;p&gt;First of all  you will need to create a github repository with the following naming scheme: &lt;em&gt;username.github.io&lt;/em&gt; (replace &lt;em&gt;username&lt;/em&gt; with your github username). Then you can clone your repository with:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;git clone git@github.com:username/username.github.io.git
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;git clone git@github.com:username/username.github.io.git
 &lt;/pre&gt;&lt;/div&gt;
 
 
 &lt;p&gt;Next up we will generate a new virtual environment and install pelican. I will use a new branch for this, since i want to keep the source and actual blog separate. If you are not familiar with virtualenv or why you should use is it, you should read &lt;a href="http://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/"&gt;this&lt;/a&gt;.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="nb"&gt;cd &lt;/span&gt;username.github.io
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nb"&gt;cd&lt;/span&gt; username.github.io
 git branch &lt;span class="nb"&gt;source&lt;/span&gt;
 git checkout &lt;span class="nb"&gt;source&lt;/span&gt;
 virtualenv env
-&lt;span class="nb"&gt;source &lt;/span&gt;env/bin/activate
+&lt;span class="nb"&gt;source&lt;/span&gt; env/bin/activate
 pip install pelican markdown ghp-import
 &lt;/pre&gt;&lt;/div&gt;
 
 
 &lt;p&gt;Pelican comes with a script to bootstrap your blog. Run &lt;em&gt;pelican-quickstart&lt;/em&gt; and fill out the details. Make sure to generate a makefile, as it will be used later on. After you ran the command you can view and change your settings in pelicanconf.py. You can view my settings if you checkout the branch source of my blog repository. I also added the following to my .gitignore:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;env
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;env
 output
 *.pid
 cache
@@ -24,7 +24,7 @@ cache
 
 
 &lt;p&gt;Now you can write your first post! Create a new file in the content folder and start typing:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;vim content/fist-post.md
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;vim content/fist-post.md
 Title: My first post!
 Category: foo
 Tags: foo bar
@@ -34,13 +34,13 @@ This is my first post
 
 
 &lt;p&gt;Run &lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;make html
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;make html
 make serve
 &lt;/pre&gt;&lt;/div&gt;
 
 
 &lt;p&gt;and point your browser to &lt;a href="http://localhost:8000"&gt;localhost:8000&lt;/a&gt;. If everything looks good we can now deploy the blog to github. First push the source branch:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;git checkout &lt;span class="nb"&gt;source&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;git checkout &lt;span class="nb"&gt;source&lt;/span&gt;
 git add .
 git commit -m &lt;span class="s2"&gt;&amp;quot;first post&amp;quot;&lt;/span&gt;
 git push origin &lt;span class="nb"&gt;source&lt;/span&gt;
@@ -48,13 +48,13 @@ git push origin &lt;span class="nb"&gt;source&lt;/span&gt;
 
 
 &lt;p&gt;Then deploy to github with&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;make github
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;make github
 &lt;/pre&gt;&lt;/div&gt;
 
 
 &lt;h4&gt;Themes&lt;/h4&gt;
 &lt;p&gt;Since i did not like the default theme, i chose another one. You can view a list of themes in the pelican-themes &lt;a href="https://github.com/getpelican/pelican-themes"&gt;repository&lt;/a&gt;. To install a theme just copy the theme folder to a location of your choice and edit the pelicanconfy.py&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="nv"&gt;THEME&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;path/to/your/theme&amp;#39;&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nv"&gt;THEME&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;path/to/your/theme&amp;#39;&lt;/span&gt;
 &lt;/pre&gt;&lt;/div&gt;
 
 

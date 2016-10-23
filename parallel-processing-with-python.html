@@ -7,21 +7,21 @@
   <script src="http://cdnjs.cloudflare.com/ajax/libs/less.js/1.7.3/less.min.js" type="text/javascript"></script>
   -->
   <link rel="stylesheet" type="text/css" href="https://raphaelbrand.github.io/theme/css/style.css">
-
   <link rel="stylesheet" type="text/css" href="https://raphaelbrand.github.io/theme/css/pygments.css">
-  <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=PT+Sans|PT+Serif|PT+Mono">
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=PT+Sans|PT+Serif|PT+Mono">
 
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Raphael Brand">
   <meta name="description" content="Posts and writings by Raphael Brand">
 
-  <link href="https://raphaelbrand.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Raphael Brand | Blog Full Atom Feed" />
+  <link href="https://raphaelbrand.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Raphael Brand | Blog Atom" />
 
 <meta name="keywords" content="python parallel">
 
   <title>
-Parallel processing with python  </title>
+    Raphael Brand | Blog
+&ndash; Parallel processing with python  </title>
 
 </head>
 
@@ -29,7 +29,7 @@ Parallel processing with python  </title>
   <aside>
     <div id="user_meta">
       <a href="https://raphaelbrand.github.io">
-        <img src="https://raphaelbrand.github.io/theme/images/logo.jpg" alt="logo">
+        <img src="/images/logo.jpg" alt="logo">
       </a>
       <h2><a href="https://raphaelbrand.github.io">Raphael Brand</a></h2>
       <p>a blog about software development and machine learning</p>
@@ -41,12 +41,15 @@ Parallel processing with python  </title>
 
   <main>
     <header>
-<p>Posted on Di 02 September 2014</p>
+      <p>
+      <a href="https://raphaelbrand.github.io">Index</a> &brvbar; <a href="https://raphaelbrand.github.io/archives.html">Archives</a>
+      &brvbar; <a href="https://raphaelbrand.github.io/feeds/all.atom.xml">Atom</a>
+      </p>
     </header>
 
 <article>
   <div class="article_title">
-    <h3><a href="https://raphaelbrand.github.io/parallel-processing-with-python.html">Parallel processing with python</a></h3>
+    <h1><a href="https://raphaelbrand.github.io/parallel-processing-with-python.html">Parallel processing with python</a></h1>
   </div>
   <div class="article_text">
     <p>Since i do a lot of machine learning and nlp related tasks, i often need to preprocess large amounts of data. For web pages, which where obtained by a crawler, these steps might include:</p>
@@ -57,24 +60,24 @@ Parallel processing with python  </title>
 <li><a href="http://en.wikipedia.org/wiki/Stemming">stem</a> the remaining tokens</li>
 </ul>
 <p>The following is a very simple example. Lets assume we have a text file where every line is a document:</p>
-<div class="highlight"><pre>This is an example text.
+<div class="highlight"><pre><span></span>This is an example text.
 Another text with no meaning!
 What is this? Some more text here.
 </pre></div>
 
 
 <p>The goal is to extract every word and write those tokens separated by whitespace to a new file.</p>
-<div class="highlight"><pre><span class="kn">import</span> <span class="nn">re</span>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">re</span>
 
 <span class="n">tokenized_lines</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;input.txt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;input.txt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
-        <span class="n">tokenized_lines</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">token</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;\W+&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+        <span class="n">tokenized_lines</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">token</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;\W+&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
                                 <span class="k">if</span> <span class="n">token</span><span class="o">.</span><span class="n">isalpha</span><span class="p">()</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">token</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">])</span>
 
-<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;output.txt&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;output.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">tokenized_lines</span><span class="p">:</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
 </pre></div>
 
 
@@ -92,31 +95,31 @@ What is this? Some more text here.
 <p><img alt="task chain Text" src="https://raphaelbrand.github.io/images/PyProcessParallel.png" /></p>
 <p>The producer reads from a source and puts work into the work queue. It is possible to specify a size for each queue. If a queue is already at maximum capacity an attempt to put more items into will block the caller. This allows me to control the amount of memory which will be used. Every worker runs in its own process and takes work out of the work queue. After a worker has finished its task, it puts the result into the result queue. The consumer will then collect the results and write them to specified destination.</p>
 <p>Lets transform our example from the beginning to use the new script. I'll assume you already downloaded the script from github and included it in your project:</p>
-<div class="highlight"><pre><span class="kn">from</span> <span class="nn">process_parallel</span> <span class="kn">import</span> <span class="n">process_parallel</span>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">process_parallel</span> <span class="kn">import</span> <span class="n">process_parallel</span>
 
-<span class="c"># you could use the file object as the producer,</span>
-<span class="c"># no need to write a generator.</span>
-<span class="c"># But for demonstration purposes i&#39;ll write a function</span>
-<span class="c"># to show you how to include other sources</span>
-<span class="nb">input</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;input.txt&#39;</span><span class="p">)</span>
+<span class="c1"># you could use the file object as the producer,</span>
+<span class="c1"># no need to write a generator.</span>
+<span class="c1"># But for demonstration purposes i&#39;ll write a function</span>
+<span class="c1"># to show you how to include other sources</span>
+<span class="nb">input</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;input.txt&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">producer</span><span class="p">():</span>
     <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">input</span><span class="p">:</span>
         <span class="k">yield</span> <span class="n">line</span>
 
 <span class="k">def</span> <span class="nf">worker</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">token</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;\W&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">token</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;\W&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">token</span><span class="o">.</span><span class="n">isalpha</span><span class="p">()</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">token</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">]</span>
 
-<span class="n">out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;output.txt&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;output.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">consumer</span><span class="p">(</span><span class="n">tokens</span><span class="p">):</span>
-    <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
 
-<span class="c"># the producer should support __iter__</span>
-<span class="c"># worker and consumer need to be functions </span>
+<span class="c1"># the producer should support __iter__</span>
+<span class="c1"># worker and consumer need to be functions </span>
 <span class="n">process_parallel</span><span class="p">(</span><span class="n">producer</span><span class="p">(),</span> <span class="n">worker</span><span class="p">,</span> <span class="n">consumer</span>
                  <span class="n">maxsize_jobs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">maxsize_results</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
 
-<span class="c">#clean up</span>
+<span class="c1">#clean up</span>
 <span class="nb">input</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 <span class="n">out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </pre></div>
@@ -125,6 +128,7 @@ What is this? Some more text here.
 <p>The solution is simple enough, only 50 lines of python code. The queues allow us to control the memory being used. On the downside there is a overhead due to the use of the processes. The data needs to be serialized and deserialized between processes. This means, if you're worker logic is too simple, then your code will run slower in parallel.</p>
   </div>
   <div class="article_meta">
+    <p>Posted on: Di 02 September 2014</p>
     <p>Category: <a href="https://raphaelbrand.github.io/category/software-development.html">software development</a>
  &ndash; Tags:
       <a href="https://raphaelbrand.github.io/tag/python-parallel.html">python parallel</a>    </p>
@@ -136,7 +140,7 @@ What is this? Some more text here.
         var disqus_identifier = "parallel-processing-with-python.html";
         (function() {
              var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-             dsq.src = 'https://raphaelbrand.disqus.com/embed.js';
+             dsq.src = '//raphaelbrand.disqus.com/embed.js';
              (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
          })();
     </script>
@@ -144,12 +148,9 @@ What is this? Some more text here.
 
 </article>
 
-    <footer>
-<p><a href="https://raphaelbrand.github.io/" class="button_accent">&larr; Back to Index</a></p>
-    </footer>
 
     <div id="ending_message">
-      <p>&copy; Raphael Brand. Built using <a href="http://getpelican.com" target="_blank">Pelican</a>. Theme by Giulio Fidente on <a href="https://github.com/giulivo/pelican-svbhack" target="_blank">github</a>. .</p>
+      <p>&copy; Raphael Brand. Built using <a href="http://getpelican.com" target="_blank">Pelican</a>. Theme by Giulio Fidente on <a href="https://github.com/gfidente/pelican-svbhack" target="_blank">github</a>. </p>
     </div>
   </main>
 </body>
