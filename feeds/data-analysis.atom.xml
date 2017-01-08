@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Raphael Brand | Blog</title><link href="https://raphaelbrand.github.io/" rel="alternate"></link><link href="https://raphaelbrand.github.io/feeds/data-analysis.atom.xml" rel="self"></link><id>https://raphaelbrand.github.io/</id><updated>2017-01-08T14:30:00+01:00</updated><entry><title>Local data exploration with the ELK stack</title><link href="https://raphaelbrand.github.io/local-data-exploration-with-the-elk-stack.html" rel="alternate"></link><published>2017-01-08T14:30:00+01:00</published><updated>2017-01-08T14:30:00+01:00</updated><author><name>Raphael Brand</name></author><id>tag:raphaelbrand.github.io,2017-01-08:local-data-exploration-with-the-elk-stack.html</id><summary type="html">&lt;p&gt;Modern laptops are pretty powerful these days, which makes it possible to analyze medium sized data sets locally instead of using a dedicated server or even a whole cluster.
+Popular tools for these tasks are &lt;a href="https://www.r-project.org/"&gt;R&lt;/a&gt; and &lt;a href="http://pandas.pydata.org/"&gt;pandas&lt;/a&gt;, often in combination with the great &lt;a href="https://jupyter.org/"&gt;jupyter notebook&lt;/a&gt;. For this post i am going to show how to do some data analysis with the &lt;a href="https://www.elastic.co/products"&gt;ELK&lt;/a&gt; stack on your local laptop. While this stack is usually used for real-time analytics of time series data, it proves also to be useful for a one time local data analysis. These are the pros that i personally like the most:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Very easy to get started.&lt;/li&gt;
+&lt;li&gt;Schemaless data structures with elastic search makes it possible to insert documents of different structure into the data base.&lt;/li&gt;
+&lt;li&gt;No need to write code to produce charts. We just need to create a logstash file, which describes on how to load the data. Data exploration can be done in the web interface.&lt;/li&gt;
+&lt;li&gt;The possibility to scale up easily by inserting the data into an elastic search cluster.&lt;/li&gt;
+&lt;li&gt;A lot of charts out of the box, including a world map for geo points.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;The data&lt;/h2&gt;
+&lt;p&gt;I will use the &lt;a href="https://www.kaggle.com/foenix/slc-crime"&gt;Salt Lake City Crime Report&lt;/a&gt; for 2016. It is in the csv format and has 56244 entries. Each entry is one crime report. Here is an example:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;,case ,ncic code,description,ibr,occurred,reported,day of week,location,city,city council,police zone,police grid,x_coordinate,y_coordinate,x_gps_coords,y_gps_coords
+
+0,SL201624,2499-13,STOLEN VEHICLE,240,01/01/2016 12:36:15 AM,01/01/2016 12:36:15 AM,6,1400 S EMERY ST,SALT LAKE CITY,2,Z2,123,1882550.0,876155.0,-111.92456865049556,40.73791707496032
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2&gt;Scope&lt;/h2&gt;
+&lt;p&gt;I will not go deeper into how the ELK stack works. A lot of configuration options are left unexplained, since i feel they are not important for experimental usage.&lt;/p&gt;
+&lt;h1&gt;Installation&lt;/h1&gt;
+&lt;p&gt;Installing is as easy as downloading the archives from the elastic website and extracting them. Also you need to have java8 installed.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.1.1.zip
+wget https://artifacts.elastic.co/downloads/kibana/kibana-5.1.1-linux-x86_64.tar.gz
+wget https://artifacts.elastic.co/downloads/logstash/logstash-5.1.1.zip
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h1&gt;Preprocessing&lt;/h1&gt;
+&lt;p&gt;After downloading the data we need to preprocess it a bit and insert it into elastic search, which will be done through logstash. While logstash is able to read csv data, in my experience it is easier to feed json data to logstash, sine it needs zero configuration later. Well will use the &lt;a href="http://csvkit.readthedocs.io/en/0.9.1/scripts/csvjson.html"&gt;csvkit&lt;/a&gt; for this.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;pip install csvkit
+cat SLC_Police_Cases_2016_cleaned_geocoded.csv &lt;span class="p"&gt;|&lt;/span&gt; csvjson --stream &amp;gt; out.jl
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2&gt;Logstash configuration&lt;/h2&gt;
+&lt;p&gt;This is the logstash config i used. Read the comments to understand what each lines does:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;input &lt;span class="o"&gt;{&lt;/span&gt;
+  &lt;span class="c1"&gt;# Read data from stdin.&lt;/span&gt;
+  stdin &lt;span class="o"&gt;{&lt;/span&gt; &lt;span class="o"&gt;}&lt;/span&gt;
+&lt;span class="o"&gt;}&lt;/span&gt;
+
+filter &lt;span class="o"&gt;{&lt;/span&gt;
+  &lt;span class="c1"&gt;# Parse the json input data.&lt;/span&gt;
+  json &lt;span class="o"&gt;{&lt;/span&gt; &lt;span class="nb"&gt;source&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;&amp;gt; message &lt;span class="o"&gt;}&lt;/span&gt;
+  &lt;span class="c1"&gt;# Parse the occurred field into a proper data object.&lt;/span&gt;
+  date &lt;span class="o"&gt;{&lt;/span&gt;
+    &lt;span class="nv"&gt;match&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;&amp;gt; &lt;span class="o"&gt;[&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;occurred&amp;quot;&lt;/span&gt;, &lt;span class="s2"&gt;&amp;quot;MM/dd/yyyy hh:mm:ss aa&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;]&lt;/span&gt;
+  &lt;span class="o"&gt;}&lt;/span&gt;
+  mutate &lt;span class="o"&gt;{&lt;/span&gt;
+    &lt;span class="c1"&gt;#Coordinates need to be a number not a string in ES.&lt;/span&gt;
+    &lt;span class="nv"&gt;convert&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;&amp;gt; &lt;span class="o"&gt;{&lt;/span&gt;
+      &lt;span class="s2"&gt;&amp;quot;x_gps_coords&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;&amp;gt; &lt;span class="s2"&gt;&amp;quot;float&amp;quot;&lt;/span&gt;
+      &lt;span class="s2"&gt;&amp;quot;y_gps_coords&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;&amp;gt; &lt;span class="s2"&gt;&amp;quot;float&amp;quot;&lt;/span&gt;
+    &lt;span class="o"&gt;}&lt;/span&gt;
+  &lt;span class="o"&gt;}&lt;/span&gt;
+  mutate &lt;span class="o"&gt;{&lt;/span&gt;
+    &lt;span class="c1"&gt;# A little hack so we do not have define our own mapping for geopoints.&lt;/span&gt;
+    &lt;span class="c1"&gt;# The default logstash mapping defines geoip.location.lon and lat as&lt;/span&gt;
+    &lt;span class="c1"&gt;# geopoints for mapping ip addresses to coordinates.&lt;/span&gt;
+    &lt;span class="nv"&gt;rename&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;&amp;gt; &lt;span class="o"&gt;{&lt;/span&gt;
+      &lt;span class="s2"&gt;&amp;quot;x_gps_coords&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;&amp;gt; &lt;span class="s2"&gt;&amp;quot;[geoip][location][lon]&amp;quot;&lt;/span&gt;
+      &lt;span class="s2"&gt;&amp;quot;y_gps_coords&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;&amp;gt; &lt;span class="s2"&gt;&amp;quot;[geoip][location][lat]&amp;quot;&lt;/span&gt;
+    &lt;span class="o"&gt;}&lt;/span&gt;
+  &lt;span class="o"&gt;}&lt;/span&gt;
+&lt;span class="o"&gt;}&lt;/span&gt;
+
+output &lt;span class="o"&gt;{&lt;/span&gt;
+  &lt;span class="c1"&gt;# Output data to ES&lt;/span&gt;
+  elasticsearch &lt;span class="o"&gt;{&lt;/span&gt;
+    &lt;span class="nv"&gt;hosts&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;&amp;gt; &lt;span class="o"&gt;[&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;localhost:9200&amp;quot;&lt;/span&gt;&lt;span class="o"&gt;]&lt;/span&gt;
+    &lt;span class="nv"&gt;index&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;&amp;gt; &lt;span class="s2"&gt;&amp;quot;logstash-%{+YYYY.MM}&amp;quot;&lt;/span&gt;
+  &lt;span class="o"&gt;}&lt;/span&gt;
+&lt;span class="o"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2&gt;Loading the data&lt;/h2&gt;
+&lt;p&gt;First we need to start ES.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;./elasticsearch-5.1.1/bin/elasticsearch
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Then we can start loading the data. Note that i specify to only use two workers with -w 2, so that ES still has two CPUs for indexing:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;cat out.jl &lt;span class="p"&gt;|&lt;/span&gt;  ./logstash-5.1.1/bin/logstash -f logstash.conf -w 2
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h1&gt;Exploring the data&lt;/h1&gt;
+&lt;p&gt;Since we indexed all the data we can now start up kibana and explore the data set.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;./kibana-5.1.1-linux-x86_64/bin/kibana
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Now open http://localhost:5601 in your favorite browser.&lt;/p&gt;
+&lt;h2&gt;Disover&lt;/h2&gt;
+&lt;p&gt;Make sure to specify the whole year of 2016 in to top right as the time frame first, otherwise you will see nothing. The &lt;em&gt;Discover view&lt;/em&gt; is a good starting point to explore your data for the first time. On the top you will see a graph like this:&lt;/p&gt;
+&lt;p&gt;&lt;img alt="disover view" src="https://raphaelbrand.github.io/images/elk/discover.png" /&gt;&lt;/p&gt;
+&lt;p&gt;It shows the time distribution of our data. Since we used the occurred field for indexing you can see the distribution of the crime reports over the whole year. So what is the spike at the right side of the graph about? We can select only those documents by clicking on this spike. By expanding and inspecting the documents we realize, that these documents have no occured data attached to them and logstash uses by default the date of the insertion.&lt;/p&gt;
+&lt;p&gt;On the left side of the view you will see all the fields that were found in all the documents. By clicking on them you will get a quick distribution of values. For example clicking on description gives us:&lt;/p&gt;
+&lt;p&gt;&lt;img alt="quick count" src="https://raphaelbrand.github.io/images/elk/quickcount.png" /&gt;&lt;/p&gt;
+&lt;p&gt;There is also the possibility to use the search box on the top to filter for specific documents. For example we could filter out documents without a proper occurred date. More about that can be found &lt;a href="https://www.elastic.co/guide/en/beats/packetbeat/current/kibana-queries-filters.html"&gt;here&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Visualize&lt;/h2&gt;
+&lt;p&gt;Finally we can start with the most interesting part, the visualizations. I will not create a step by step tutorial on how to create those, since the interface is pretty easy to figure out. I just want to show some interesting findings. Please be aware that this is not a proper statistical analysis! At all. We don't know much about how the data was generated in the first place. For example if we see more DUIs on Saturday this doesn't mean that more people are driving drunk on Saturday. Could also just be that there are more police men on the street during this day and puling over more drivers.&lt;/p&gt;
+&lt;h3&gt;Most dangerous part of the city.&lt;/h3&gt;
+&lt;p&gt;By using the map visualization and the coordinates we can create a heat map of the city, to show in which part of the city the most crimes are reported:&lt;/p&gt;
+&lt;p&gt;&lt;img alt="quick count" src="https://raphaelbrand.github.io/images/elk/heatmap.png" /&gt;&lt;/p&gt;
+&lt;h3&gt;Crimes per time of day.&lt;/h3&gt;
+&lt;p&gt;Most crimes are reported on a Saturday.&lt;/p&gt;
+&lt;p&gt;&lt;img alt="quick count" src="https://raphaelbrand.github.io/images/elk/dayofweek.png" /&gt;&lt;/p&gt;
+&lt;h3&gt;Development of crime rates&lt;/h3&gt;
+&lt;p&gt;Let's see if some crimes got more / less frequent over the year.&lt;/p&gt;
+&lt;p&gt;&lt;img alt="quick count" src="https://raphaelbrand.github.io/images/elk/crimeratesdevelopment.png" /&gt;&lt;/p&gt;
+&lt;h1&gt;Conclusion&lt;/h1&gt;
+&lt;p&gt;The ELK stack is a nice alternative to notebooks, for doing some quick exploration of a new data set. It requires little programming and comes with a bunch of useful visualizations out of the box.&lt;/p&gt;</summary><category term="elk visualization"></category></entry></feed>

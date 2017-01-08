@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- ## for client-side less
+  <link rel="stylesheet/less" type="text/css" href="https://raphaelbrand.github.io/theme/css/style.less">
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/less.js/1.7.3/less.min.js" type="text/javascript"></script>
+  -->
+  <link rel="stylesheet" type="text/css" href="https://raphaelbrand.github.io/theme/css/style.css">
+  <link rel="stylesheet" type="text/css" href="https://raphaelbrand.github.io/theme/css/pygments.css">
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=PT+Sans|PT+Serif|PT+Mono">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Raphael Brand">
+  <meta name="description" content="Posts and writings by Raphael Brand">
+
+  <link href="https://raphaelbrand.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Raphael Brand | Blog Atom" />
+
+<meta name="keywords" content="elk visualization">
+
+  <title>
+    Raphael Brand | Blog
+&ndash; Local data exploration with the ELK stack  </title>
+
+</head>
+
+<body>
+  <aside>
+    <div id="user_meta">
+      <a href="https://raphaelbrand.github.io">
+        <img src="/images/logo.jpg" alt="logo">
+      </a>
+      <h2><a href="https://raphaelbrand.github.io">Raphael Brand</a></h2>
+      <p>a blog about software development and machine learning</p>
+      <ul>
+        <li><a href="https://github.com/raphaelbrand" target="_blank">Github</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main>
+    <header>
+      <p>
+      <a href="https://raphaelbrand.github.io">Index</a> &brvbar; <a href="https://raphaelbrand.github.io/archives.html">Archives</a>
+      &brvbar; <a href="https://raphaelbrand.github.io/feeds/all.atom.xml">Atom</a>
+      </p>
+    </header>
+
+<article>
+  <div class="article_title">
+    <h1><a href="https://raphaelbrand.github.io/local-data-exploration-with-the-elk-stack.html">Local data exploration with the ELK stack</a></h1>
+  </div>
+  <div class="article_text">
+    <p>Modern laptops are pretty powerful these days, which makes it possible to analyze medium sized data sets locally instead of using a dedicated server or even a whole cluster.
+Popular tools for these tasks are <a href="https://www.r-project.org/">R</a> and <a href="http://pandas.pydata.org/">pandas</a>, often in combination with the great <a href="https://jupyter.org/">jupyter notebook</a>. For this post i am going to show how to do some data analysis with the <a href="https://www.elastic.co/products">ELK</a> stack on your local laptop. While this stack is usually used for real-time analytics of time series data, it proves also to be useful for a one time local data analysis. These are the pros that i personally like the most:</p>
+<ul>
+<li>Very easy to get started.</li>
+<li>Schemaless data structures with elastic search makes it possible to insert documents of different structure into the data base.</li>
+<li>No need to write code to produce charts. We just need to create a logstash file, which describes on how to load the data. Data exploration can be done in the web interface.</li>
+<li>The possibility to scale up easily by inserting the data into an elastic search cluster.</li>
+<li>A lot of charts out of the box, including a world map for geo points.</li>
+</ul>
+<h2>The data</h2>
+<p>I will use the <a href="https://www.kaggle.com/foenix/slc-crime">Salt Lake City Crime Report</a> for 2016. It is in the csv format and has 56244 entries. Each entry is one crime report. Here is an example:</p>
+<div class="highlight"><pre><span></span>,case ,ncic code,description,ibr,occurred,reported,day of week,location,city,city council,police zone,police grid,x_coordinate,y_coordinate,x_gps_coords,y_gps_coords
+
+0,SL201624,2499-13,STOLEN VEHICLE,240,01/01/2016 12:36:15 AM,01/01/2016 12:36:15 AM,6,1400 S EMERY ST,SALT LAKE CITY,2,Z2,123,1882550.0,876155.0,-111.92456865049556,40.73791707496032
+</pre></div>
+
+
+<h2>Scope</h2>
+<p>I will not go deeper into how the ELK stack works. A lot of configuration options are left unexplained, since i feel they are not important for experimental usage.</p>
+<h1>Installation</h1>
+<p>Installing is as easy as downloading the archives from the elastic website and extracting them. Also you need to have java8 installed.</p>
+<div class="highlight"><pre><span></span>wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.1.1.zip
+wget https://artifacts.elastic.co/downloads/kibana/kibana-5.1.1-linux-x86_64.tar.gz
+wget https://artifacts.elastic.co/downloads/logstash/logstash-5.1.1.zip
+</pre></div>
+
+
+<h1>Preprocessing</h1>
+<p>After downloading the data we need to preprocess it a bit and insert it into elastic search, which will be done through logstash. While logstash is able to read csv data, in my experience it is easier to feed json data to logstash, sine it needs zero configuration later. Well will use the <a href="http://csvkit.readthedocs.io/en/0.9.1/scripts/csvjson.html">csvkit</a> for this.</p>
+<div class="highlight"><pre><span></span>pip install csvkit
+cat SLC_Police_Cases_2016_cleaned_geocoded.csv <span class="p">|</span> csvjson --stream &gt; out.jl
+</pre></div>
+
+
+<h2>Logstash configuration</h2>
+<p>This is the logstash config i used. Read the comments to understand what each lines does:</p>
+<div class="highlight"><pre><span></span>input <span class="o">{</span>
+  <span class="c1"># Read data from stdin.</span>
+  stdin <span class="o">{</span> <span class="o">}</span>
+<span class="o">}</span>
+
+filter <span class="o">{</span>
+  <span class="c1"># Parse the json input data.</span>
+  json <span class="o">{</span> <span class="nb">source</span> <span class="o">=</span>&gt; message <span class="o">}</span>
+  <span class="c1"># Parse the occurred field into a proper data object.</span>
+  date <span class="o">{</span>
+    <span class="nv">match</span> <span class="o">=</span>&gt; <span class="o">[</span> <span class="s2">&quot;occurred&quot;</span>, <span class="s2">&quot;MM/dd/yyyy hh:mm:ss aa&quot;</span> <span class="o">]</span>
+  <span class="o">}</span>
+  mutate <span class="o">{</span>
+    <span class="c1">#Coordinates need to be a number not a string in ES.</span>
+    <span class="nv">convert</span> <span class="o">=</span>&gt; <span class="o">{</span>
+      <span class="s2">&quot;x_gps_coords&quot;</span> <span class="o">=</span>&gt; <span class="s2">&quot;float&quot;</span>
+      <span class="s2">&quot;y_gps_coords&quot;</span> <span class="o">=</span>&gt; <span class="s2">&quot;float&quot;</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+  mutate <span class="o">{</span>
+    <span class="c1"># A little hack so we do not have define our own mapping for geopoints.</span>
+    <span class="c1"># The default logstash mapping defines geoip.location.lon and lat as</span>
+    <span class="c1"># geopoints for mapping ip addresses to coordinates.</span>
+    <span class="nv">rename</span> <span class="o">=</span>&gt; <span class="o">{</span>
+      <span class="s2">&quot;x_gps_coords&quot;</span> <span class="o">=</span>&gt; <span class="s2">&quot;[geoip][location][lon]&quot;</span>
+      <span class="s2">&quot;y_gps_coords&quot;</span> <span class="o">=</span>&gt; <span class="s2">&quot;[geoip][location][lat]&quot;</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+
+output <span class="o">{</span>
+  <span class="c1"># Output data to ES</span>
+  elasticsearch <span class="o">{</span>
+    <span class="nv">hosts</span> <span class="o">=</span>&gt; <span class="o">[</span><span class="s2">&quot;localhost:9200&quot;</span><span class="o">]</span>
+    <span class="nv">index</span> <span class="o">=</span>&gt; <span class="s2">&quot;logstash-%{+YYYY.MM}&quot;</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+
+<h2>Loading the data</h2>
+<p>First we need to start ES.</p>
+<div class="highlight"><pre><span></span>./elasticsearch-5.1.1/bin/elasticsearch
+</pre></div>
+
+
+<p>Then we can start loading the data. Note that i specify to only use two workers with -w 2, so that ES still has two CPUs for indexing:</p>
+<div class="highlight"><pre><span></span>cat out.jl <span class="p">|</span>  ./logstash-5.1.1/bin/logstash -f logstash.conf -w 2
+</pre></div>
+
+
+<h1>Exploring the data</h1>
+<p>Since we indexed all the data we can now start up kibana and explore the data set.</p>
+<div class="highlight"><pre><span></span>./kibana-5.1.1-linux-x86_64/bin/kibana
+</pre></div>
+
+
+<p>Now open http://localhost:5601 in your favorite browser.</p>
+<h2>Disover</h2>
+<p>Make sure to specify the whole year of 2016 in to top right as the time frame first, otherwise you will see nothing. The <em>Discover view</em> is a good starting point to explore your data for the first time. On the top you will see a graph like this:</p>
+<p><img alt="disover view" src="https://raphaelbrand.github.io/images/elk/discover.png" /></p>
+<p>It shows the time distribution of our data. Since we used the occurred field for indexing you can see the distribution of the crime reports over the whole year. So what is the spike at the right side of the graph about? We can select only those documents by clicking on this spike. By expanding and inspecting the documents we realize, that these documents have no occured data attached to them and logstash uses by default the date of the insertion.</p>
+<p>On the left side of the view you will see all the fields that were found in all the documents. By clicking on them you will get a quick distribution of values. For example clicking on description gives us:</p>
+<p><img alt="quick count" src="https://raphaelbrand.github.io/images/elk/quickcount.png" /></p>
+<p>There is also the possibility to use the search box on the top to filter for specific documents. For example we could filter out documents without a proper occurred date. More about that can be found <a href="https://www.elastic.co/guide/en/beats/packetbeat/current/kibana-queries-filters.html">here</a>.</p>
+<h2>Visualize</h2>
+<p>Finally we can start with the most interesting part, the visualizations. I will not create a step by step tutorial on how to create those, since the interface is pretty easy to figure out. I just want to show some interesting findings. Please be aware that this is not a proper statistical analysis! At all. We don't know much about how the data was generated in the first place. For example if we see more DUIs on Saturday this doesn't mean that more people are driving drunk on Saturday. Could also just be that there are more police men on the street during this day and puling over more drivers.</p>
+<h3>Most dangerous part of the city.</h3>
+<p>By using the map visualization and the coordinates we can create a heat map of the city, to show in which part of the city the most crimes are reported:</p>
+<p><img alt="quick count" src="https://raphaelbrand.github.io/images/elk/heatmap.png" /></p>
+<h3>Crimes per time of day.</h3>
+<p>Most crimes are reported on a Saturday.</p>
+<p><img alt="quick count" src="https://raphaelbrand.github.io/images/elk/dayofweek.png" /></p>
+<h3>Development of crime rates</h3>
+<p>Let's see if some crimes got more / less frequent over the year.</p>
+<p><img alt="quick count" src="https://raphaelbrand.github.io/images/elk/crimeratesdevelopment.png" /></p>
+<h1>Conclusion</h1>
+<p>The ELK stack is a nice alternative to notebooks, for doing some quick exploration of a new data set. It requires little programming and comes with a bunch of useful visualizations out of the box.</p>
+  </div>
+  <div class="article_meta">
+    <p>Posted on: So 08 Januar 2017</p>
+    <p>Category: <a href="https://raphaelbrand.github.io/category/data-analysis.html">data analysis</a>
+ &ndash; Tags:
+      <a href="https://raphaelbrand.github.io/tag/elk-visualization.html">elk visualization</a>    </p>
+  </div>
+
+  <div id="article_comments">
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        var disqus_identifier = "local-data-exploration-with-the-elk-stack.html";
+        (function() {
+             var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+             dsq.src = '//raphaelbrand.disqus.com/embed.js';
+             (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+         })();
+    </script>
+  </div>
+
+</article>
+
+
+    <div id="ending_message">
+      <p>&copy; Raphael Brand. Built using <a href="http://getpelican.com" target="_blank">Pelican</a>. Theme by Giulio Fidente on <a href="https://github.com/gfidente/pelican-svbhack" target="_blank">github</a>. </p>
+    </div>
+  </main>
+</body>
+</html>
